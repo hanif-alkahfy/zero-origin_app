@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "ZeroOrigin - One Origin Key. Infinite Credentials.",
@@ -16,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("dark h-full antialiased", "font-sans", geist.variable)}>
-      <body className="min-h-full flex flex-col bg-black text-white">
+    <html lang="en" className="dark h-full antialiased">
+      <body className="min-h-full flex flex-col bg-black text-white font-mono">
         {children}
       </body>
     </html>
