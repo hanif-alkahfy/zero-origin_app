@@ -57,14 +57,8 @@ export async function POST(request: NextRequest) {
     // Reset attempts on success
     delete attemptStore[clientIp];
     
-    const response = NextResponse.json({ success: true });
-    response.cookies.set('pin-session', 'authenticated', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24
-    });
-    return response;
+    // Just return success - client will store in sessionStorage
+    return NextResponse.json({ success: true });
   }
 
   // Track failed attempt

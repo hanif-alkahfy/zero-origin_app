@@ -1,25 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle } from "lucide-react"
 
 export default function PinPage() {
-  const router = useRouter()
   const [pin, setPin] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [remainingTime, setRemainingTime] = useState(0)
 
   useEffect(() => {
-    const cookie = document.cookie
-    if (cookie.includes("pin-session=authenticated")) {
-      router.push("/")
+    // Check sessionStorage instead of cookie
+    const hasSession = sessionStorage.getItem('pin-auth')
+    if (hasSession) {
+      window.location.href = "/"
     }
-  }, [router])
+  }, [])
 
   useEffect(() => {
     if (remainingTime > 0) {
@@ -54,7 +53,9 @@ export default function PinPage() {
       const data = await res.json()
 
       if (res.ok) {
-        router.push("/")
+        // Store in sessionStorage (deleted when tab closes)
+        sessionStorage.setItem('pin-auth', 'true')
+        window.location.href = "/"
       } else {
         if (data.retryAfter) {
           setRemainingTime(data.retryAfter)
