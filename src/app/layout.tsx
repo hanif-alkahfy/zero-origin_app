@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthCheck from "@/components/auth-check";
 
 export const metadata: Metadata = {
   title: "ZeroOrigin - One Origin Key. Infinite Credentials.",
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark h-full antialiased">
       <body className="min-h-full flex flex-col bg-black text-white font-mono">
-        {children}
+        <AuthCheck>{children}</AuthCheck>
       </body>
     </html>
   );

@@ -6,6 +6,12 @@ import {
   validateAll,
 } from '../engine';
 
+describe('generatePassword', () => {
+  it.todo('should generate consistent password for same inputs (requires WASM)');
+  it.todo('should generate different passwords for different sites (requires WASM)');
+  it.todo('should generate different passwords for different usernames (requires WASM)');
+});
+
 describe('validateOriginKey', () => {
   it('should reject empty origin key', () => {
     const result = validateOriginKey('');
