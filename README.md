@@ -23,41 +23,15 @@ Given the same inputs, Zero Origin always produces the same password. This means
 
 ```mermaid
 flowchart LR
-    subgraph Input["INPUTS"]
-        OK["Origin Key<br/>(User's Secret)"]
-        Site["Site<br/>(github.com)"]
-        User["Username<br/>(user@email.com)"]
-    end
-
-    subgraph KDF["KEY DERIVATION"]
-        Argon2["Argon2id<br/>m=256MB, t=3, p=4"]
-        RootKey["Root Key<br/>(256-bit)"]
-    end
-
-    subgraph Identity["IDENTITY BUILDING"]
-        SHA["SHA-256<br/>Hash"]
-        IdentityHash["Identity Hash<br/>(256-bit)"]
-    end
-
-    subgraph Expansion["KEY EXPANSION"]
-        HKDF["HKDF<br/>SHA-256"]
-        DerivedKey["Derived Key<br/>(256-bit)"]
-    end
-
-    subgraph Output["PASSWORD OUTPUT"]
-        Generator["Password<br/>Generator"]
-        Password["Unique Password<br/>(20 chars)"]
-    end
-
-    OK --> Argon2 --> RootKey
-    RootKey --> HKDF
-    Site --> SHA
-    User --> SHA
-    SHA --> IdentityHash
+    OK[Origin Key] --> Argon2[Argon2id<br/>m=256MB t=3 p=4] --> RootKey[Root Key<br/>256-bit]
+    RootKey --> HKDF[HKDF]
+    Site[Site] --> SHA[SHA-256]
+    User[Username] --> SHA
+    SHA --> IdentityHash[Identity Hash<br/>256-bit]
     IdentityHash --> HKDF
-    HKDF --> DerivedKey
-    DerivedKey --> Generator
-    Generator --> Password
+    HKDF --> DerivedKey[Derived Key<br/>256-bit]
+    DerivedKey --> Generator[Password<br/>Generator]
+    Generator --> Password[Unique Password<br/>20 chars]
 ```
 
 ### Security Details
@@ -74,7 +48,8 @@ flowchart LR
 - **Zero Knowledge**: Origin Key never leaves your browser
 - **No Server Storage**: No passwords stored anywhere
 - **Client-Side Only**: All cryptographic operations happen in-browser
-- **Session-Based**: Origin Key stored in sessionStorage (cleared on tab close)
+- **Session-Based**: Origin Key and PIN session stored in sessionStorage (cleared on tab close)
+- **PIN Protection**: Optional PIN hash verification via server-side API
 
 ### Site Normalization
 
@@ -92,7 +67,7 @@ Sites are automatically normalized before hashing:
 | Language | TypeScript 5 |
 | UI | React 19, Tailwind CSS 4 |
 | Components | shadcn/ui, Radix UI |
-| Cryptography | argon2-browser, Web Crypto API |
+| Cryptography | argon2-wasm, Web Crypto API |
 | Icons | Lucide React |
 | Testing | Vitest |
 
@@ -109,22 +84,24 @@ zero_origin_app/
 │   │   ├── generator/       # Password generator page
 │   │   ├── pin/             # PIN entry page
 │   │   ├── setup/           # Origin Key setup page
-│   │   ├── layout.tsx       # Root layout
+│   │   ├── layout.tsx       # Root layout (includes AuthCheck)
 │   │   └── page.tsx         # Home page
-│   ├── components/          # UI components
+│   ├── components/
+│   │   ├── ui/              # shadcn/ui components
+│   │   ├── auth-check.tsx   # Session protection wrapper
+│   │   ├── password-input.tsx
+│   │   └── warning.tsx
 │   ├── hooks/
-│   │   ├── use-clipboard.ts
 │   │   └── use-session-storage.ts
-│   ├── lib/
-│   │   └── crypto/
-│   │       ├── argon2.ts    # Argon2id key derivation
-│   │       ├── engine.ts    # Main password generation logic
-│   │       ├── formatter.ts # Password formatting
-│   │       ├── hkdf.ts      # HKDF key expansion
-│   │       ├── sha256.ts    # Identity hashing
-│   │       └── index.ts     # Public API
-│   └── types/               # TypeScript definitions
-├── .env.local               # Environment variables
+│   └── lib/
+│       └── crypto/
+│           ├── argon2.ts     # Argon2id key derivation
+│           ├── engine.ts     # Main password generation logic
+│           ├── formatter.ts  # Password formatting
+│           ├── hkdf.ts       # HKDF key expansion
+│           ├── sha256.ts     # Identity hashing
+│           └── index.ts      # Public API
+├── .env.local                # Environment variables
 ├── package.json
 └── README.md
 ```
@@ -156,7 +133,7 @@ Create `.env.local` with the following:
 
 ```env
 # Optional: PIN protection (recommended for production)
-# Generate PIN hash: echo -n "YOUR_PIN" | sha256sum
+# Generate PIN hash: node -e "console.log(require('crypto').createHash('sha256').update('123456').digest('hex'))"
 PIN_HASH=
 ```
 
@@ -191,15 +168,21 @@ npm test -- --coverage
 
 ## Usage Flow
 
-### 1. First Time Setup
+### 1. Authentication (PIN)
 
+When PIN protection is enabled:
 1. Visit the application
-2. Click "Create Origin Key"
-3. Enter a strong Origin Key (minimum 8 characters)
-4. Confirm the Origin Key
-5. Read and acknowledge the warning — **Origin Key cannot be recovered**
+2. Enter your 6-digit PIN
+3. If failed 3 times, exponential backoff applies
 
-### 2. Generate Passwords
+### 2. First Time Setup
+
+1. After authentication, click "Create Origin Key"
+2. Enter a strong Origin Key (minimum 8 characters)
+3. Confirm the Origin Key
+4. Read and acknowledge the warning — **Origin Key cannot be recovered**
+
+### 3. Generate Passwords
 
 1. Click "Go to Generator" or navigate to `/generator`
 2. Enter the site (e.g., `github.com`)
@@ -207,11 +190,11 @@ npm test -- --coverage
 4. Click "Generate Password"
 5. Copy the generated password
 
-### 3. PIN Protection (Optional)
+### 4. Session Management
 
-Set `PIN_HASH` in environment variables to add an extra layer of protection:
-- Rate limiting: 3 attempts before lockout
-- Exponential backoff: 30s → 60s → 120s → ...
+- Origin Key is stored in sessionStorage (cleared when tab closes)
+- PIN session is stored in sessionStorage (cleared when tab closes)
+- Re-authenticate after closing the browser
 
 ## Security Considerations
 

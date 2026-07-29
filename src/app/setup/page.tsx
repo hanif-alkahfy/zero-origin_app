@@ -65,7 +65,7 @@ function StrengthIndicator({ strength }: { strength: StrengthLevel }) {
 }
 
 export default function SetupPage() {
-  const { isAuthenticated, isLoading, setOriginKey } = useSessionStorage()
+  const { isLoading } = useSessionStorage()
   const [mounted, setMounted] = useState(false)
   const [originKey, setOriginKeyState] = useState("")
   const [confirmKey, setConfirmKey] = useState("")
@@ -117,7 +117,6 @@ export default function SetupPage() {
   }
 
   const handleConfirm = () => {
-    setOriginKey(originKey)
     window.location.href = "/generator"
   }
 

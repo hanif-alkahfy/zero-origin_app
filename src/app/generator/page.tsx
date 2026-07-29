@@ -5,12 +5,10 @@ import Link from "next/link"
 import { Eye, EyeOff, Copy, Check, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/password-input"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useSessionStorage } from "@/hooks/use-session-storage"
 
 export default function GeneratorPage() {
-  const { getOriginKey, removeOriginKey, isAuthenticated, isLoading } = useSessionStorage()
-  
   const [originKey, setOriginKey] = useState<string>("")
   const [site, setSite] = useState("")
   const [username, setUsername] = useState("")
@@ -19,21 +17,24 @@ export default function GeneratorPage() {
   const [copied, setCopied] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState("")
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
-    if (isLoading) return
-    
-    if (!isAuthenticated) {
-      return
-    }
-    
-    const key = getOriginKey()
-    if (key) {
-      setOriginKey(key)
-    }
-  }, [isLoading, isAuthenticated, getOriginKey])
+    setMounted(true)
+  }, [])
 
-  if (isLoading) {
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      setOriginKey("")
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload)
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload)
+      setOriginKey("")
+    }
+  }, [])
+
+  if (!mounted) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-6">
         <main className="w-full max-w-[600px] flex flex-col items-center text-center gap-6">
@@ -54,13 +55,44 @@ export default function GeneratorPage() {
     )
   }
 
-  if (!isAuthenticated || !originKey) {
+  if (!originKey) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center p-6">
-        <p className="text-muted-foreground mb-4">No Origin Key found.</p>
-        <Link href="/setup">
-          <Button variant="mono">Set Up Origin Key</Button>
-        </Link>
+        <main className="w-full max-w-[600px] flex flex-col items-center text-center gap-6">
+          <h1 className="text-2xl font-bold tracking-tight">ENTER ORIGIN KEY</h1>
+          <p className="text-muted-foreground text-sm">
+            Your Origin Key is never stored. Re-enter it every session.
+          </p>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              const formData = new FormData(e.currentTarget)
+              const key = formData.get("originKey") as string
+              if (key) setOriginKey(key)
+            }}
+            className="w-full flex flex-col gap-4"
+          >
+            <div className="flex flex-col gap-2 text-left">
+              <label htmlFor="originKey" className="text-sm font-medium">
+                Origin Key
+              </label>
+              <PasswordInput
+                id="originKey"
+                name="originKey"
+                placeholder="Enter your Origin Key"
+              />
+            </div>
+
+            <Button type="submit" variant="mono" size="lg" className="w-full">
+              Continue
+            </Button>
+          </form>
+
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setOriginKey("")}>
+            Back to Home
+          </Link>
+        </main>
       </div>
     )
   }
@@ -95,11 +127,6 @@ export default function GeneratorPage() {
     await navigator.clipboard.writeText(password)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
-  }
-
-  const handleClearOriginKey = () => {
-    removeOriginKey()
-    window.location.href = "/"
   }
 
   return (
@@ -180,13 +207,7 @@ export default function GeneratorPage() {
           </div>
         )}
 
-        <div className="w-full pt-4 border-t border-border">
-          <Button variant="outline" onClick={handleClearOriginKey}>
-            Clear Origin Key
-          </Button>
-        </div>
-
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground" onClick={() => setOriginKey("")}>
           Back to Home
         </Link>
       </main>
